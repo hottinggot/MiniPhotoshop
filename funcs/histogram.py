@@ -1,0 +1,2 @@
+#calculate histogram
+#draw histogram
