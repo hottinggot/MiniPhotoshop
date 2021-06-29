@@ -1,6 +1,6 @@
 import cv2
 from PySide2 import QtCore, QtWidgets, QtGui
-from PySide2.QtWidgets import QWidget, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, QVBoxLayout, QLabel, QSizePolicy, QGroupBox, QCheckBox, QTableWidget, QLayout, QGridLayout, QSlider
+from PySide2.QtWidgets import QFileDialog, QWidget, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, QVBoxLayout, QLabel, QSizePolicy, QGroupBox, QCheckBox, QTableWidget, QLayout, QGridLayout, QSlider
 from PySide2.QtGui import QPainter, QColor, QFont, QPen, QBrush, QPainterPath, QPalette, QPixmap, QImage
 from PySide2.QtCore import QPoint, QRect, Qt
 
@@ -32,7 +32,7 @@ class Window(QMainWindow):
     def addMenu(self):
         # File menu
         loadImageAction = QAction('Load Image...', self)
-        loadImageAction.triggered.connect(self.updateImage)
+        loadImageAction.triggered.connect(self.open_image)
 
         loadVideoAction = QAction('Load Video...', self)
 
@@ -61,15 +61,22 @@ class Window(QMainWindow):
     def addGui(self):
 
         # Left - image box
+
         self.imageLabel = QLabel()
-        self.imageLabel.setFixedSize((self.width()/2) - 40, 400)
+        self.imageLabel.setFixedSize((self.width()/2) - 40, self.height()/2 - 40)
         self.imageLabel.setAlignment(Qt.AlignCenter)
         self.imageLabel.setScaledContents(True)
         self.imageLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.imageLabel.setText("Load Image")
 
+        self.processedImageLabel = QLabel()
+        self.processedImageLabel.setFixedSize((self.width()/2) - 40, self.height()/2 - 40)
+        self.processedImageLabel.setAlignment(Qt.AlignCenter)
+        self.processedImageLabel.setText("Processed Image Area")
+
         leftLayout = QVBoxLayout()
         leftLayout.addWidget(self.imageLabel)
+        leftLayout.addWidget(self.processedImageLabel)
 
         # right - image processing option
 
@@ -100,10 +107,11 @@ class Window(QMainWindow):
         font2 = title1_checkbox1.font()
         font2.setPointSize(13)
         title1_checkbox1.setFont(font2)
-        title1_checkbox1.stateChanged.connect(self.onCheckBox1_1Clicked)
+        # title1_checkbox1.stateChanged.connect(self.negativeFunc)
+        title1_checkbox1.stateChanged.connect(self.negative_button_clicked)
 
         # check box 1_2
-        title1_checkbox2 = QCheckBox("Contrast Enhancing")
+        title1_checkbox2 = QCheckBox("Power Law")
         title1_checkbox2.setFont(font2)
 
         # Gamma Slider
@@ -167,16 +175,16 @@ class Window(QMainWindow):
         row = 0
         col = 0
         rightGridLayout.addWidget(titleLabel, 0, 0, 2, -1)
-        rightGridLayout.addWidget(sTitleLabel1, 2, 0, 1, -1)
+        rightGridLayout.addWidget(sTitleLabel1, 2, 0, 1, 1)
         rightGridLayout.addWidget(title1_checkbox1, 3, 0, 1, -1)
         rightGridLayout.addWidget(title1_checkbox2, 4, 0, 1, -1)
         rightGridLayout.addWidget(self.slider, 5, 0, 1, 1)
-        rightGridLayout.addWidget(title1_checkbox3, 6, 0, 1, -1)
-        rightGridLayout.addWidget(sTitleLabel2, 7, 0, 1, -1)
+        rightGridLayout.addWidget(title1_checkbox3, 6, 0, 1, 1)
+        rightGridLayout.addWidget(sTitleLabel2, 7, 0, 1, 1)
         rightGridLayout.addWidget(title2_checkbox1, 8, 0, 1, 1)
         rightGridLayout.addWidget(title2_checkbox2, 8, 1, 1, 1)
         rightGridLayout.addWidget(title2_checkbox3, 8, 2, 1, 1)
-        rightGridLayout.addWidget(sTitleLabel3, 9, 0, 1, -1)
+        rightGridLayout.addWidget(sTitleLabel3, 9, 0, 1, 1)
         rightGridLayout.addWidget(title3_checkbox1, 10, 0, 1, 1)
         rightGridLayout.addWidget(title3_checkbox2, 10, 1, 1, 1)
         rightGridLayout.addWidget(title3_checkbox3, 10, 2, 1, 1)
@@ -199,13 +207,24 @@ class Window(QMainWindow):
         ll.setLayout(layout)
         self.setCentralWidget(ll)
 
-    def updateImage(self):
-        self.imageName = loadsource.ImageFile().loadImage()
 
+    def set_image(self, image):
+        height = image.shape[0]
+        width = image.shape[1]
+        self.imageVar = QImage(image.data, width, height, width, QImage.Format_Grayscale8)
+
+        pixmapVar = QPixmap.fromImage(self.imageVar)
+        self.imageLabel.setPixmap(pixmapVar)
+
+    def open_image(self):
+        frame = QFileDialog.getOpenFileName()
+
+        # set imageVar
         self.imageVar = QImage()
         size = self.size()
-        self.imageVar.load(self.imageName[0])
+        self.imageVar.load(frame[0])
 
+        # set image label
         pixmapVar = QPixmap.fromImage(self.imageVar)
 
         ratio = pixmapVar.height() / pixmapVar.width()
@@ -215,27 +234,7 @@ class Window(QMainWindow):
         self.imageLabel.setPixmap(pixmapVar)
         self.imageLabel.setScaledContents(True)
 
-        height = self.imageVar.height()
-        width = self.imageVar.width()
-        ptr = self.imageVar.constBits()
-        self.imageArr = np.array(ptr).reshape(height, width, 4)
-
-    def onCheckBox1_1Clicked(self):
-        #incomingImage = incomingImage.convertToFormat(QtGui.QImage.Format.Format_RGB32)
-        gray_image = cv2.cvtColor(self.imageArr, cv2.COLOR_BGR2GRAY)
-        height = gray_image.shape[0]
-        width = gray_image.shape[1]
-        for i in range(0, height - 1):
-            for j in range(0, width - 1):
-                gray_image[i][j] = 255 - gray_image[i][j]
-
-
-        bytesPerLine = width
-        self.imageVar = QImage(gray_image.data, width, height, bytesPerLine, QImage.Format_Grayscale8)
-
-        pixmapVar = QPixmap.fromImage(self.imageVar)
-        self.imageLabel.setPixmap(pixmapVar)
-
+        # set imageArr
         height = self.imageVar.height()
         width = self.imageVar.width()
         ptr = self.imageVar.constBits()
@@ -248,5 +247,10 @@ class Window(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    #def testf(self):
-        #print(float(self.slider.value()))
+
+    def negative_button_clicked(self):
+        self.set_image(pp.negativeFunc(self.imageArr))
+
+    def power_law_button_1_clicked(self):
+        self.set_image(pp.powerLawFunc(self.imageArr, gamma=0.1))
+
