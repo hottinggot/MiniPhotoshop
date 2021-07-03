@@ -38,31 +38,38 @@ def rgb_to_hsi(rgb_image):
 
 
 def negative_func(image):
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    height = gray_image.shape[0]
-    width = gray_image.shape[1]
-    for i in range(0, height - 1):
-        for j in range(0, width - 1):
-            gray_image[i][j] = 255 - gray_image[i][j]
+    if image.ndim == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        image = image.copy()
+    height = image.shape[0]
+    width = image.shape[1]
+    for i in range(height):
+        for j in range(width):
+            image[i][j] = 255 - image[i][j]
 
-    return gray_image
+    return image
 
 
 def power_law_func(image, gamma):
 
-    pix = list()
-    for i in range(0, 255):
-        pix.append(pow(i/255.0, gamma)*255)
+    pix = np.zeros(256)
+    for i in range(256):
+        pix[i] = (pow(i/255.0, gamma)*255)
 
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    height = gray_image.shape[0]
-    width = gray_image.shape[1]
+    if image.ndim == 3:
+        p_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        p_image = image.copy()
 
-    for i in range(0, height-1):
-        for j in range(0, width-1):
-            gray_image[i][j] = pix[gray_image[i][j]]
+    height = p_image.shape[0]
+    width = p_image.shape[1]
 
-    return gray_image
+    for i in range(height):
+        for j in range(width):
+            p_image[i][j] = int(pix[p_image[i][j]])
+
+    return p_image
 
 
 
